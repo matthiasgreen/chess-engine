@@ -1,0 +1,10 @@
+[package]
+name = "chess-engine"
+version = "0.1.0"
+authors = ["matthiasgreen <matthiasgreen2@gmail.com>"]
+edition = "2021"
+license = "MIT"
+license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/matthiasgreen/chess-engine"
+keywords = ["chess", "engine"]
