@@ -15,3 +15,9 @@ Chess engine for educational purposes, written in Rust. Currently around 2000 EL
 ```bash	
 wasm-pack build
 ```
+
+## Install with npm
+
+```bash
+npm i https://github.com/matthiasgreen/chess-engine/releases/latest/download/chess-engine-0.1.0.tgz
+```
