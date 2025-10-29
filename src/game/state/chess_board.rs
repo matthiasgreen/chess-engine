@@ -1,4 +1,4 @@
-use super::BitBoard;
+use crate::game::{square::Square, state::bitboard::BitBoard};
 
 /// Enum representing the type of a piece.
 #[derive(Clone, Copy, Debug)]
@@ -11,9 +11,9 @@ pub enum PieceType {
     King,
 }
 
-impl PieceType {
-    pub fn as_char(&self) -> char {
-        match self {
+impl From<PieceType> for char {
+    fn from(value: PieceType) -> Self {
+        match value {
             PieceType::Pawn => 'P',
             PieceType::Knight => 'N',
             PieceType::Bishop => 'B',
@@ -36,6 +36,15 @@ pub struct ChessBoardSide {
 }
 
 impl ChessBoardSide {
+    pub const EMPTY: Self = Self {
+        pawn: BitBoard::EMPTY,
+        knight: BitBoard::EMPTY,
+        bishop: BitBoard::EMPTY,
+        rook: BitBoard::EMPTY,
+        queen: BitBoard::EMPTY,
+        king: BitBoard::EMPTY,
+    };
+
     pub fn union(&self) -> BitBoard {
         self.pawn | self.knight | self.bishop | self.rook | self.queen | self.king
     }
@@ -71,32 +80,25 @@ pub struct ChessBoard {
 }
 
 impl ChessBoard {
+    pub const EMPTY: ChessBoard = ChessBoard {
+        white: ChessBoardSide::EMPTY,
+        black: ChessBoardSide::EMPTY,
+    };
+
     pub fn from_fen(board: &str) -> Self {
-        let mut boards = ChessBoard {
-            white: ChessBoardSide {
-                pawn: 0,
-                knight: 0,
-                bishop: 0,
-                rook: 0,
-                queen: 0,
-                king: 0,
-            },
-            black: ChessBoardSide {
-                pawn: 0,
-                knight: 0,
-                bishop: 0,
-                rook: 0,
-                queen: 0,
-                king: 0,
-            },
-        };
-        for (rank, line) in board.split('/').rev().enumerate() {
-            let mut file = 0;
+        let mut boards = ChessBoard::EMPTY;
+
+        for (line, rank) in board.split('/').rev().zip(0_u8..) {
+            let mut file = 0_u8;
             for c in line.chars() {
                 if c.is_ascii_digit() {
-                    file += c.to_digit(10).unwrap() as usize;
+                    file += c.to_digit(10).unwrap() as u8;
                 } else {
-                    let color_board = if c.is_uppercase() { &mut boards.white } else { &mut boards.black };
+                    let color_board = if c.is_uppercase() {
+                        &mut boards.white
+                    } else {
+                        &mut boards.black
+                    };
                     let bb = match c.to_ascii_lowercase() {
                         'p' => &mut color_board.pawn,
                         'n' => &mut color_board.knight,
@@ -106,7 +108,7 @@ impl ChessBoard {
                         'k' => &mut color_board.king,
                         _ => panic!("Invalid piece type"),
                     };
-                    *bb |= 1 << (rank * 8 + file);
+                    bb.set(Square::new(rank, file));
                     file += 1;
                 }
             }
@@ -121,23 +123,23 @@ impl ChessBoard {
             for j in 0..8 {
                 let mut found = false;
                 for (board, piece) in self.white.as_array() {
-                    if *board & (1 << (i * 8 + j)) != 0 {
+                    if board.get(Square::new(i, j)) {
                         if empty > 0 {
                             board_str.push_str(&empty.to_string());
                             empty = 0;
                         }
-                        board_str.push(piece.as_char());
+                        board_str.push(piece.into());
                         found = true;
                         break;
                     }
                 }
                 for (board, piece) in self.black.as_array() {
-                    if *board & (1 << (i * 8 + j)) != 0 {
+                    if board.get(Square::new(i, j)) {
                         if empty > 0 {
                             board_str.push_str(&empty.to_string());
                             empty = 0;
                         }
-                        board_str.push(piece.as_char().to_ascii_lowercase());
+                        board_str.push(char::from(piece).to_ascii_lowercase());
                         found = true;
                         break;
                     }
@@ -167,15 +169,15 @@ impl std::fmt::Debug for ChessBoard {
             for j in 0..8 {
                 let mut found = false;
                 for (board, piece) in white_board {
-                    if *board & (1 << (i * 8 + j)) != 0 {
-                        board_str.push(piece.as_char());
+                    if board.get(Square::new(i, j)) {
+                        board_str.push(piece.into());
                         found = true;
                         break;
                     }
                 }
                 for (board, piece) in black_board {
-                    if *board & (1 << (i * 8 + j)) != 0 {
-                        board_str.push(piece.as_char().to_ascii_lowercase());
+                    if board.get(Square::new(i, j)) {
+                        board_str.push(char::from(piece).to_ascii_lowercase());
                         found = true;
                         break;
                     }

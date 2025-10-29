@@ -1,4 +1,7 @@
-use crate::{api::evaluate, game::{GameState, MakeUnmaker, MoveExt, MoveGenerator, MoveList}, search::search::SearchContext};
+use crate::game::{
+    r#move::{MoveGenerator, MoveList},
+    state::{game_state::GameState, make_unmake::MakeUnmaker},
+};
 
 #[allow(dead_code)]
 pub fn perftree(depth: u8, game_state: &mut GameState, moves: Option<Vec<&str>>) {
@@ -26,17 +29,13 @@ pub fn perftree(depth: u8, game_state: &mut GameState, moves: Option<Vec<&str>>)
     // dbg!(start.elapsed());
 }
 
-fn make_move_sequence(
-    move_gen: &MoveGenerator,
-    make_unmaker: &mut MakeUnmaker,
-    moves: Vec<&str>,
-) {
+fn make_move_sequence(move_gen: &MoveGenerator, make_unmaker: &mut MakeUnmaker, moves: Vec<&str>) {
     for m in moves {
         let mut found_move = None;
         let mut move_list = MoveList::new();
         move_list.new_ply();
         move_gen.get_pseudo_legal_moves(make_unmaker.state, &mut move_list);
-        for m2 in move_list.get_current_ply() {
+        for m2 in move_list.current_ply() {
             if m2.matches_perft_string(m) {
                 found_move = Some(m2);
                 break;
@@ -59,22 +58,22 @@ fn iter_first_level_moves(
     let move_list = &mut MoveList::new();
     move_list.new_ply();
     move_gen.get_pseudo_legal_moves(make_unmaker.state, move_list);
-    let ply_number = move_list.get_ply_number();
-    let ply_size = move_list.get_ply_size(ply_number);
+    let ply_number = move_list.ply_number();
+    let ply_size = move_list.ply_size(ply_number);
     for m in 0..ply_size {
-        let m = move_list.get_move(ply_number, m);
+        let m = move_list.r#move(ply_number, m);
         make_unmaker.make_move(m);
         if move_gen.was_move_legal(make_unmaker.state) {
             let count = &mut 0;
-            recursize_perft(move_gen, make_unmaker, move_list, depth - 1, count);
-            println!("{} {}", m.to_perft_string(), count);
+            recursive_perft(move_gen, make_unmaker, move_list, depth - 1, count);
+            println!("{} {}", m, count);
             *total_nodes += *count;
         }
         make_unmaker.unmake_move(m);
     }
 }
 
-fn recursize_perft(
+fn recursive_perft(
     move_gen: &MoveGenerator,
     make_unmaker: &mut MakeUnmaker,
     move_list: &mut MoveList,
@@ -87,23 +86,17 @@ fn recursize_perft(
     }
     move_list.new_ply();
     move_gen.get_pseudo_legal_moves(make_unmaker.state, move_list);
-    let ply_number = move_list.get_ply_number();
-    let ply_size = move_list.get_ply_size(ply_number);
+    let ply_number = move_list.ply_number();
+    let ply_size = move_list.ply_size(ply_number);
     for m in 0..ply_size {
-        let m = move_list.get_move(ply_number, m);
+        let m = move_list.r#move(ply_number, m);
         make_unmaker.make_move(m);
         if move_gen.was_move_legal(make_unmaker.state) {
             if depth == 1 {
                 *nodes += 1;
             } else {
                 // SearchContext::new(make_unmaker.state, 0).evaluate();
-                recursize_perft(
-                    move_gen,
-                    make_unmaker,
-                    move_list,
-                    depth - 1,
-                    nodes,
-                );
+                recursive_perft(move_gen, make_unmaker, move_list, depth - 1, nodes);
             }
         }
         make_unmaker.unmake_move(m);
@@ -114,9 +107,9 @@ fn recursize_perft(
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
-    fn recursize_perft_test() {
+    fn recursive_perft_test() {
         let initial_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         let position_2 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
         let position_3 = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
@@ -128,7 +121,6 @@ mod tests {
             (initial_fen, 4, 197281),
             // (initial_fen, 5, 4865609),
             // (initial_fen, 6, 119060324),
-
 
             // position 2
             (position_2, 1, 48),
@@ -152,7 +144,13 @@ mod tests {
             let mut make_unmaker = MakeUnmaker::new(&mut game_state);
             let mut move_list = MoveList::new();
             let mut count = 0;
-            recursize_perft(&move_gen, &mut make_unmaker, &mut move_list, depth, &mut count);
+            recursive_perft(
+                &move_gen,
+                &mut make_unmaker,
+                &mut move_list,
+                depth,
+                &mut count,
+            );
             assert_eq!(count, nodes);
         }
     }

@@ -1,5 +1,13 @@
-use super::{bitboard::*, flags::*, zobrist_numbers::ZobristNumbers, ChessBoard, ChessBoardSide};
-
+use crate::game::{
+    color::Color,
+    square::Square,
+    state::{
+        bitboard::BitBoard,
+        chess_board::{ChessBoard, ChessBoardSide},
+        flags::StateFlags,
+        zobrist_numbers::ZobristNumbers,
+    },
+};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct GameState {
@@ -11,11 +19,11 @@ pub struct GameState {
 
 impl std::fmt::Debug for GameState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let _ = write!(f, "GameState:");
-        let _ = write!(f, "{:?}", self.boards);
-        let _ = write!(f, "en_passant: \n{}", self.en_passant.to_pretty_string());
-        let _ = write!(f, "flags: \n{:b}\n", self.flags);
-        let _ = write!(f, "halfmove: \n{}\n", self.halfmove);
+        write!(f, "GameState:")?;
+        write!(f, "  {:?}", self.boards)?;
+        write!(f, "  en_passant: \n{}", self.en_passant)?;
+        write!(f, "  flags: \n{:?}\n", self.flags)?;
+        write!(f, "  halfmove: \n{}\n", self.halfmove)?;
         Ok(())
     }
 }
@@ -31,23 +39,28 @@ impl GameState {
 
         // let _fullmove = split.next().unwrap();
         let boards = ChessBoard::from_fen(board_str);
-        let flags = StateFlags::from_fen(active_color, castling);
+        let flags = StateFlags::from_fen(active_color.chars().nth(0).unwrap(), castling);
         let en_passant = match en_passant {
-            "-" => 0,
-            s => BitBoard::from_square(s),
+            "-" => BitBoard::EMPTY,
+            s => BitBoard::from(Square::try_from(s).unwrap()),
         };
         let halfmove: u8 = halfmove.parse().unwrap();
-        GameState { boards, en_passant, flags, halfmove }
+        GameState {
+            boards,
+            en_passant,
+            flags,
+            halfmove,
+        }
     }
 
     pub fn to_fen(self) -> String {
         let board_str = self.boards.to_fen();
         let flags = self.flags.to_fen();
         let en_passant = match self.en_passant {
-            0 => "-".to_string(),
-            s => s.to_square(),
+            BitBoard::EMPTY => "-".to_string(),
+            bb => Square::try_from(bb).unwrap().to_string(),
         };
-        
+
         format!("{} {} {} {} 1", board_str, flags, en_passant, self.halfmove)
     }
 
@@ -56,57 +69,66 @@ impl GameState {
         let mut hash = 0;
         let board_hash_pairs = [
             (&self.boards.white.pawn, &zobrist_numbers.board.white.pawn),
-            (&self.boards.white.knight, &zobrist_numbers.board.white.knight),
-            (&self.boards.white.bishop, &zobrist_numbers.board.white.bishop),
+            (
+                &self.boards.white.knight,
+                &zobrist_numbers.board.white.knight,
+            ),
+            (
+                &self.boards.white.bishop,
+                &zobrist_numbers.board.white.bishop,
+            ),
             (&self.boards.white.rook, &zobrist_numbers.board.white.rook),
             (&self.boards.white.queen, &zobrist_numbers.board.white.queen),
             (&self.boards.white.king, &zobrist_numbers.board.white.king),
             (&self.boards.black.pawn, &zobrist_numbers.board.black.pawn),
-            (&self.boards.black.knight, &zobrist_numbers.board.black.knight),
-            (&self.boards.black.bishop, &zobrist_numbers.board.black.bishop),
+            (
+                &self.boards.black.knight,
+                &zobrist_numbers.board.black.knight,
+            ),
+            (
+                &self.boards.black.bishop,
+                &zobrist_numbers.board.black.bishop,
+            ),
             (&self.boards.black.rook, &zobrist_numbers.board.black.rook),
             (&self.boards.black.queen, &zobrist_numbers.board.black.queen),
             (&self.boards.black.king, &zobrist_numbers.board.black.king),
         ];
         for (board, hash_board) in board_hash_pairs {
             let mut b = *board;
-            while b != 0 {
-                let lsb = b.pop_lsb();
-                hash ^= hash_board[lsb as usize];
+            while let Some(lsb) = b.pop_first_square() {
+                hash ^= hash_board[lsb.0 as usize];
             }
         }
-        if !self.flags.is_white_to_play() {
+        if !self.flags.active_color() == Color::White {
             hash ^= zobrist_numbers.active_color;
         }
 
-        if self.flags.can_white_king_castle() {
+        if self.flags.white_king_castle_right() {
             hash ^= zobrist_numbers.castling.white_king_side;
         }
 
-        if self.flags.can_white_queen_castle() {
+        if self.flags.white_queen_castle_right() {
             hash ^= zobrist_numbers.castling.white_queen_side;
         }
 
-        if self.flags.can_black_king_castle() {
+        if self.flags.black_king_castle_right() {
             hash ^= zobrist_numbers.castling.black_king_side;
         }
 
-        if self.flags.can_black_queen_castle() {
+        if self.flags.black_queen_castle_right() {
             hash ^= zobrist_numbers.castling.black_queen_side;
         }
 
         // En passant
-        if self.en_passant != 0 {
-            let lsb = self.en_passant.get_lsb();
-            let file = lsb % 8;
-            hash ^= zobrist_numbers.en_passant_file[file as usize];
+        if let Some(lsb) = self.en_passant.get_first_square() {
+            hash ^= zobrist_numbers.en_passant_file[lsb.file() as usize];
         }
 
         hash
     }
-    
+
     pub fn split_boards_mut(&mut self) -> (&mut ChessBoardSide, &mut ChessBoardSide) {
-        if self.flags.is_white_to_play() {
+        if self.flags.active_color() == Color::White {
             (&mut self.boards.white, &mut self.boards.black)
         } else {
             (&mut self.boards.black, &mut self.boards.white)
@@ -114,14 +136,13 @@ impl GameState {
     }
 
     pub fn split_boards(&self) -> (&ChessBoardSide, &ChessBoardSide) {
-        if self.flags.is_white_to_play() {
+        if self.flags.active_color() == Color::White {
             (&self.boards.white, &self.boards.black)
         } else {
             (&self.boards.black, &self.boards.white)
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -131,11 +152,16 @@ mod tests {
     fn test_from_fen() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string();
         let gs = GameState::from_fen(fen);
-        assert_eq!(gs.boards.white.pawn, 0b1111_1111 << 8);
-        assert_eq!(gs.boards.white.knight, 0b0100_0010);
+        assert_eq!(gs.boards.white.pawn, BitBoard::rank(1));
+        assert_eq!(gs.boards.white.knight, 0b0100_0010.into());
         assert_eq!(gs.halfmove, 0);
-        assert!(gs.flags.is_white_to_play());
-        assert!(gs.flags.can_white_king_castle() && gs.flags.can_white_queen_castle() && gs.flags.can_black_king_castle() && gs.flags.can_black_queen_castle());
+        assert_eq!(gs.flags.active_color(), Color::White);
+        assert!(
+            gs.flags.white_king_castle_right()
+                && gs.flags.white_queen_castle_right()
+                && gs.flags.black_king_castle_right()
+                && gs.flags.black_queen_castle_right()
+        );
     }
 
     #[test]

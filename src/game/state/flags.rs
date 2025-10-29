@@ -1,107 +1,86 @@
-/// Type alias for the flags encoding game state information
-/// Use StateFlagsExt for methods and masks
-pub type StateFlags = u8;
-pub type Mask = u8;
+use bitfields::bitfield;
+use derive_more::BitXor;
 
-pub trait StateFlagsExt {
-    fn from_fen(active_color: &str, castling_rights: &str) -> StateFlags;
-    fn to_fen(&self) -> String;
+use crate::game::color::Color;
 
-    fn is_white_to_play(&self) -> bool;
-    fn toggle_active_color(&mut self);
+#[bitfield(u8)]
+#[derive(Copy, Clone, Eq, PartialEq, BitXor)]
+pub struct StateFlags {
+    #[bits(1, default = Color::White)]
+    active_color: Color,
 
-    fn can_white_king_castle(&self) -> bool;
-    fn toggle_white_king_castle(&mut self);
+    #[bits(3)]
+    _padding: u8,
 
-    fn can_white_queen_castle(&self) -> bool;
-    fn toggle_white_queen_castle(&mut self);
+    #[bits(1, default = true)]
+    white_king_castle_right: bool,
 
-    fn can_black_king_castle(&self) -> bool;
-    fn toggle_black_king_castle(&mut self);
+    #[bits(1, default = true)]
+    white_queen_castle_right: bool,
 
-    fn can_black_queen_castle(&self) -> bool;
-    fn toggle_black_queen_castle(&mut self);
+    #[bits(1, default = true)]
+    black_king_castle_right: bool,
+
+    #[bits(1, default = true)]
+    black_queen_castle_right: bool,
 }
 
-const ACTIVE_COLOR: Mask = 0b0000_0001;
-// const IRREVERSIBLE: Mask = 0b0000_0010;
-// const REP_COUNT: Mask = 0b0000_0010;
-// const WHITE_WIN: Mask = 0b0000_0100;
-// const BLACK_WIN: Mask = 0b0000_1000;
-const WHITE_KING_CASTLE: Mask = 0b0001_0000;
-const WHITE_QUEEN_CASTLE: Mask = 0b0010_0000;
-const BLACK_KING_CASTLE: Mask = 0b0100_0000;
-const BLACK_QUEEN_CASTLE: Mask = 0b1000_0000;
-
-impl StateFlagsExt for StateFlags {
-    fn is_white_to_play(&self) -> bool {
-        self & ACTIVE_COLOR == 0
+impl StateFlags {
+    pub fn toggle_white_king_castle(&mut self) {
+        self.set_white_king_castle_right(!self.white_king_castle_right());
     }
 
-    fn can_white_king_castle(&self) -> bool {
-        self & WHITE_KING_CASTLE != 0
+    pub fn toggle_white_queen_castle(&mut self) {
+        self.set_white_queen_castle_right(!self.white_queen_castle_right());
     }
 
-    fn can_white_queen_castle(&self) -> bool {
-        self & WHITE_QUEEN_CASTLE != 0
+    pub fn toggle_black_king_castle(&mut self) {
+        self.set_black_king_castle_right(!self.black_king_castle_right());
     }
 
-    fn can_black_king_castle(&self) -> bool {
-        self & BLACK_KING_CASTLE != 0
+    pub fn toggle_black_queen_castle(&mut self) {
+        self.set_black_queen_castle_right(!self.black_queen_castle_right());
     }
 
-    fn can_black_queen_castle(&self) -> bool {
-        self & BLACK_QUEEN_CASTLE != 0
+    pub fn toggle_active_color(&mut self) {
+        self.set_active_color(!self.active_color());
     }
 
-    fn toggle_active_color(&mut self) {
-        *self ^= ACTIVE_COLOR;
-    }
-
-    fn toggle_white_king_castle(&mut self) {
-        *self ^= WHITE_KING_CASTLE;
-    }
-
-    fn toggle_white_queen_castle(&mut self) {
-        *self ^= WHITE_QUEEN_CASTLE;
-    }
-
-    fn toggle_black_king_castle(&mut self) {
-        *self ^= BLACK_KING_CASTLE;
-    }
-
-    fn toggle_black_queen_castle(&mut self) {
-        *self ^= BLACK_QUEEN_CASTLE;
-    }
-
-    fn from_fen(active_color: &str, castling_rights: &str) -> StateFlags {
-        let mut flags = 0;
-        if active_color == "b" {
-            flags.toggle_active_color();
+    pub fn from_fen(active_color: char, castling_rights: &str) -> StateFlags {
+        let mut flags = StateFlags::new();
+        flags.set_active_color(active_color.try_into().unwrap());
+        if !castling_rights.contains('K') {
+            flags.set_white_king_castle_right(false);
         }
-        for c in castling_rights.chars() {
-            match c {
-                'K' => flags.toggle_white_king_castle(),
-                'Q' => flags.toggle_white_queen_castle(),
-                'k' => flags.toggle_black_king_castle(),
-                'q' => flags.toggle_black_queen_castle(),
-                _ => {}
-            }
+        if !castling_rights.contains('Q') {
+            flags.set_white_queen_castle_right(false);
+        }
+        if !castling_rights.contains('k') {
+            flags.set_black_king_castle_right(false);
+        }
+        if !castling_rights.contains('q') {
+            flags.set_black_queen_castle_right(false);
         }
         flags
     }
 
-    fn to_fen(&self) -> String {
-        let active_color = if self.is_white_to_play() { "w" } else { "b" };
-        let mut castling = [
-            if self.can_white_king_castle() { 'K' } else { ' ' },
-            if self.can_white_queen_castle() { 'Q' } else { ' ' },
-            if self.can_black_king_castle() { 'k' } else { ' ' },
-            if self.can_black_queen_castle() { 'q' } else { ' ' },
-        ].iter().collect::<String>().replace(" ", "");
-        if castling.is_empty() {
-            castling = "-".to_string();
+    pub fn to_fen(&self) -> String {
+        let mut castle_string = String::new();
+        if self.white_king_castle_right() {
+            castle_string.push('K');
         }
-        format!("{} {}", active_color, castling)
+        if self.white_queen_castle_right() {
+            castle_string.push('Q');
+        }
+        if self.black_king_castle_right() {
+            castle_string.push('k');
+        }
+        if self.black_queen_castle_right() {
+            castle_string.push('q');
+        }
+        if castle_string.is_empty() {
+            castle_string = "-".to_string();
+        }
+        format!("{} {}", char::from(self.active_color()), castle_string)
     }
 }

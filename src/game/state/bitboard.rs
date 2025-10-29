@@ -1,122 +1,194 @@
+use std::fmt::Debug;
+use std::fmt::Display;
+
+use derive_more::{BitAnd, BitAndAssign, BitOr, BitOrAssign, From, Not, Shl, Shr};
+
+use crate::game::square::Square;
+
 /// A bitboard is a 64-bit integer that represents a set of pieces on a chess board.
 /// Import the BitBoardExt trait to use some convenient methods.
-pub type BitBoard = u64;
+#[derive(
+    Copy,
+    Clone,
+    From,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Not,
+    BitOr,
+    BitAnd,
+    BitOrAssign,
+    BitAndAssign,
+    Shl,
+    Shr,
+)]
+pub struct BitBoard(u64);
 
-pub const EMPTY: BitBoard = 0;
-pub const FULL: BitBoard = 0xFFFF_FFFF_FFFF_FFFF;
-pub const RANK: BitBoard = 0xFF;
-pub const FILE: BitBoard = 0x0101_0101_0101_0101;
+impl BitBoard {
+    pub const EMPTY: Self = Self(0);
+    pub const FULL: Self = Self(0xFFFF_FFFF_FFFF_FFFF);
 
-/// A trait that provides some convenient methods for working with bitboards.
-pub trait BitBoardExt {
-    fn get_msb(&self) -> i8;
-    fn get_lsb(&self) -> u8;
-    fn pop_msb(&mut self) -> u8;
-    fn to_pretty_string(&self) -> String;
-    fn pop_lsb(&mut self) -> u8;
+    pub fn is_empty(&self) -> bool {
+        *self == BitBoard::EMPTY
+    }
 
-    fn from_square(square: &str) -> BitBoard;
+    pub fn set(&mut self, square: Square) {
+        self.0 |= 1 << square.0
+    }
 
-    fn to_square(&self) -> String;
+    pub fn unset(&mut self, square: Square) {
+        self.0 &= !(1 << square.0)
+    }
 
-    fn column(number: i32) -> BitBoard;
+    pub fn toggle(&mut self, square: Square) {
+        self.0 ^= 1 << square.0
+    }
 
-    fn row(number: i32) -> BitBoard;
+    pub fn get(&self, square: Square) -> bool {
+        self.0 & (1 << square.0) != 0
+    }
+
+    pub fn pop_first_square(&mut self) -> Option<Square> {
+        if self.is_empty() {
+            None
+        } else {
+            let lsb = self.0.trailing_zeros() as u8;
+            self.0 &= !(1 << lsb);
+            Some(Square(lsb))
+        }
+    }
+
+    pub fn pop_last_square(&mut self) -> Option<Square> {
+        if self.is_empty() {
+            None
+        } else {
+            let msb = 63 - self.0.leading_zeros() as u8;
+            self.0 &= !(1 << msb);
+            Some(Square(msb))
+        }
+    }
+
+    pub fn get_first_square(&self) -> Option<Square> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(Square(self.0.trailing_zeros() as u8))
+        }
+    }
+
+    pub fn get_last_square(&self) -> Option<Square> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(Square(63 - self.0.leading_zeros() as u8))
+        }
+    }
+
+    pub fn file(number: u8) -> Self {
+        debug_assert!(number < 8);
+        BitBoard(0x0101_0101_0101_0101_u64 << number)
+    }
+
+    pub fn rank(number: u8) -> Self {
+        debug_assert!(number < 8);
+        BitBoard(0xFF_u64 << (number * 8))
+    }
+
+    pub fn count_ones(&self) -> u32 {
+        self.0.count_ones()
+    }
+
+    pub fn trailing_zeros(&self) -> u32 {
+        self.0.trailing_zeros()
+    }
 }
 
-impl BitBoardExt for BitBoard {
-    fn pop_lsb(&mut self) -> u8 {
-        assert_ne!(*self, 0);
-        let lsb = self.trailing_zeros() as u8;
-        *self &= !(1 << lsb);
-        lsb
-    }
-
-    fn pop_msb(&mut self) -> u8 {
-        assert_ne!(self, &0);
-        let msb = 63 - self.leading_zeros() as u8;
-        *self &= !(1 << msb);
-        msb
-    }
-
-    fn get_lsb(&self) -> u8 {
-        self.trailing_zeros() as u8
-    }
-
-    fn get_msb(&self) -> i8 {
-        63 - self.leading_zeros() as i8
-    }
-
-    fn to_pretty_string(&self) -> String {
-        let mut res = String::new();
-        let flipped = self.reverse_bits();
+impl Display for BitBoard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f)?;
+        let flipped = self.0.reverse_bits();
         for i in 0..8 {
             let shift = 8 * i;
             let rank = (flipped & (0xFF << shift)) >> shift;
-            res.push_str(&format!("{:#010b}\n", rank)[2..11]);
+            write!(f, "{}", &format!("{:#010b}\n", rank)[2..11])?;
         }
-        res
+        Ok(())
     }
-    
-    fn from_square(square: &str) -> BitBoard  {
-        let file = square.chars().nth(0).unwrap() as u8 - b'a';
-        let rank = square.chars().nth(1).unwrap() as u8 - b'1';
-        1 << (rank * 8 + file)
-    }
-    
-    fn to_square(&self) -> String {
-        assert_eq!(self.count_ones(), 1);
-        let lsb = self.get_lsb();
-        let file = lsb % 8;
-        let rank = lsb / 8;
-        format!("{}{}", (file + b'a') as char, (rank + b'1') as char)
-    }
-
-    fn column(number: i32) -> BitBoard {
-        FILE << number
-    }
-
-    fn row(number: i32) -> BitBoard {
-        RANK << (number * 8)
-    }
-
 }
 
+impl Debug for BitBoard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self, f)
+    }
+}
+
+impl TryFrom<BitBoard> for Square {
+    type Error = &'static str;
+
+    fn try_from(value: BitBoard) -> Result<Self, Self::Error> {
+        if value.count_ones() != 1 {
+            Err("Bitboard must have exactly 1 one to convert to square.")
+        } else {
+            Ok(value.get_first_square().unwrap())
+        }
+    }
+}
+
+impl From<Square> for BitBoard {
+    fn from(value: Square) -> Self {
+        let mut res = BitBoard::EMPTY;
+        res.set(value);
+        res
+    }
+}
+
+// impl Shl<u8> for BitBoard {
+//     type Output = BitBoard;
+
+//     fn shl(self, rhs: u8) -> Self::Output {
+//         BitBoard(self.0 << rhs)
+//     }
+// }
+
+// impl Shr<u8> for BitBoard {
+//     type Output;
+
+//     fn shr(self, rhs: u8) -> Self::Output {
+//         todo!()
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // Test pop lsb
     #[test]
     fn test_pop_lsb() {
-        let mut bb = 0b1100;
-        assert_eq!(bb.pop_lsb(), 2);
-        assert_eq!(bb, 0b1000);
-    }
-    
-    // Test pop msb
-    #[test]
-    fn test_pop_msb() {
-        let mut bb = 0b1100;
-        assert_eq!(bb.pop_msb(), 3);
-        assert_eq!(bb, 0b0100);
+        let mut bb = BitBoard(0b1100);
+        assert_eq!(bb.pop_first_square().unwrap(), Square(2));
+        assert_eq!(bb, 0b1000.into());
     }
 
-    // Test get lsb
+    #[test]
+    fn test_pop_msb() {
+        let mut bb = BitBoard(0b1100);
+        assert_eq!(bb.pop_last_square().unwrap(), Square(3));
+        assert_eq!(bb, 0b0100.into());
+    }
+
     #[test]
     fn test_get_lsb() {
-        let bb = 0b1100;
+        let bb = BitBoard(0b1100);
         println!("{}", 0_u64.trailing_zeros());
-        assert_eq!(bb.get_lsb(), 2);
+        assert_eq!(bb.get_first_square().unwrap(), Square(2));
         // assert_eq!(0.get_lsb(), 64);
     }
 
-    // Test get msb
     #[test]
     fn test_get_msb() {
-        let bb: u64 = 0b1100;
-        assert_eq!(bb.get_msb(), 3);
-        assert_eq!(1.get_msb(), 0);
+        let bb = BitBoard(0b1100);
+        assert_eq!(bb.get_last_square().unwrap(), Square(3));
+        assert_eq!(BitBoard(1).get_last_square().unwrap(), Square(0));
     }
 }

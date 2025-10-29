@@ -8,7 +8,6 @@ use rand_chacha::ChaCha20Rng;
 
 const SEED: u64 = 0xdeadbeef;
 
-
 pub struct ZobristSide {
     pub pawn: [u64; 64],
     pub knight: [u64; 64],
@@ -73,34 +72,34 @@ impl ZobristNumbers {
         };
 
         for i in 0..64 {
-            board.white.pawn[i] = rng.gen();
-            board.white.knight[i] = rng.gen();
-            board.white.bishop[i] = rng.gen();
-            board.white.rook[i] = rng.gen();
-            board.white.queen[i] = rng.gen();
-            board.white.king[i] = rng.gen();
+            board.white.pawn[i] = rng.r#gen();
+            board.white.knight[i] = rng.r#gen();
+            board.white.bishop[i] = rng.r#gen();
+            board.white.rook[i] = rng.r#gen();
+            board.white.queen[i] = rng.r#gen();
+            board.white.king[i] = rng.r#gen();
 
-            board.black.pawn[i] = rng.gen();
-            board.black.knight[i] = rng.gen();
-            board.black.bishop[i] = rng.gen();
-            board.black.rook[i] = rng.gen();
-            board.black.queen[i] = rng.gen();
-            board.black.king[i] = rng.gen();
+            board.black.pawn[i] = rng.r#gen();
+            board.black.knight[i] = rng.r#gen();
+            board.black.bishop[i] = rng.r#gen();
+            board.black.rook[i] = rng.r#gen();
+            board.black.queen[i] = rng.r#gen();
+            board.black.king[i] = rng.r#gen();
         }
 
-        let side = rng.gen();
+        let side = rng.r#gen();
 
         let castling = ZobristCastling {
-            white_king_side: rng.gen(),
-            white_queen_side: rng.gen(),
-            black_king_side: rng.gen(),
-            black_queen_side: rng.gen(),
+            white_king_side: rng.r#gen(),
+            white_queen_side: rng.r#gen(),
+            black_king_side: rng.r#gen(),
+            black_queen_side: rng.r#gen(),
         };
 
         let mut en_passant_file = [0; 8];
 
         for file in en_passant_file.iter_mut() {
-            *file = rng.gen();
+            *file = rng.r#gen();
         }
 
         ZobristNumbers {

@@ -4,11 +4,12 @@
 
 use boxarray::boxarray;
 
-use crate::game::Move;
+use crate::game::r#move::Move;
 
 const TABLE_SIZE: usize = 1 << 20;
 
 #[derive(Copy, Clone)]
+#[allow(dead_code)]
 pub struct TtEntry {
     pub hash: u64,
     pub depth: u8,
@@ -20,6 +21,7 @@ pub struct TranspositionTable {
     table: Box<[Option<TtEntry>; TABLE_SIZE]>,
 }
 
+#[allow(dead_code)]
 impl TranspositionTable {
     pub fn new() -> Self {
         TranspositionTable {

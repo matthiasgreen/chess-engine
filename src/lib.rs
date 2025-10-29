@@ -1,12 +1,12 @@
 use api::FullGameState;
 use utils::set_panic_hook;
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
 
-mod game;
-mod search;
-mod api;
-mod utils;
-mod perft;
+pub mod api;
+pub mod game;
+pub mod perft;
+pub mod search;
+pub mod utils;
 
 #[wasm_bindgen]
 pub fn evaluate(fgs: JsValue) -> JsValue {

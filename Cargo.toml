@@ -3,7 +3,7 @@ name = "chess-engine"
 description = "A chess engine written in Rust, compiled to WebAssembly."
 version = "0.1.0"
 authors = ["matthiasgreen <matthiasgreen2@gmail.com>"]
-edition = "2021"
+edition = "2024"
 license = "MIT"
 license-file = "LICENSE"
 readme = "README.md"
@@ -27,3 +27,5 @@ console_error_panic_hook = { version = "0.1.7", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.4"
 chrono = { version = "0.4.39", features = ["wasmbind"] }
+derive_more = { version = "2.0.1", features = ["from", "add", "mul", "not", "add_assign", "into"] }
+bitfields = "1.0.1"
