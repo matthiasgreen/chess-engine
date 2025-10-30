@@ -1,9 +1,9 @@
-use crate::game::color::Color;
-use crate::game::r#move::MoveCode;
-use crate::game::square::Square;
-use crate::game::state::bitboard::BitBoard;
-use crate::game::state::chess_board::ChessBoardSide;
-use crate::game::state::game_state::GameState;
+use crate::color::Color;
+use crate::r#move::MoveCode;
+use crate::square::Square;
+use crate::state::bitboard::BitBoard;
+use crate::state::chess_board::ChessBoardSide;
+use crate::state::game_state::GameState;
 
 use super::move_maps::MoveMaps;
 use super::{AddMove, Move, MoveList};
@@ -496,7 +496,7 @@ impl<'a, T: AddMove> MoveGeneratorContext<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::game::{
+    use crate::{
         r#move::{MoveGenerator, MoveList},
         state::game_state::GameState,
     };

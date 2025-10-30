@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use crate::game::{square::Square, state::bitboard::BitBoard};
+use crate::{square::Square, state::bitboard::BitBoard};
 
 pub struct MoveMap([BitBoard; 64]);
 

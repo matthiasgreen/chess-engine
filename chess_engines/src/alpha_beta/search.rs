@@ -1,6 +1,6 @@
 use chrono::{Duration, Local};
 
-use crate::game::{
+use chess_core::{
     r#move::{Move, MoveGenerator, MoveList},
     state::{game_state::GameState, make_unmake::MakeUnmaker},
 };
@@ -225,7 +225,7 @@ mod tests {
 
     use chrono::TimeDelta;
 
-    use crate::game::{color::Color, r#move::MoveCode, square::Square};
+    use chess_core::{color::Color, r#move::MoveCode, square::Square};
 
     use super::*;
 

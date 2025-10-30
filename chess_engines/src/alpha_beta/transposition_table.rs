@@ -4,7 +4,7 @@
 
 use boxarray::boxarray;
 
-use crate::game::r#move::Move;
+use chess_core::r#move::Move;
 
 const TABLE_SIZE: usize = 1 << 20;
 

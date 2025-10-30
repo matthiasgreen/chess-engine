@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 
 use derive_more::{Add, From, Sub};
 
-use crate::game::{color::Color, state::chess_board::PieceType};
+use crate::{color::Color, state::chess_board::PieceType};
 
 #[derive(Copy, Clone, From, PartialEq, Eq, PartialOrd, Ord, Add, Sub)]
 pub struct Square(pub u8);

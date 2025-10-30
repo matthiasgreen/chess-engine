@@ -1,4 +1,4 @@
-use crate::game::{square::Square, state::bitboard::BitBoard};
+use crate::{square::Square, state::bitboard::BitBoard};
 
 /// Enum representing the type of a piece.
 #[derive(Clone, Copy, Debug)]

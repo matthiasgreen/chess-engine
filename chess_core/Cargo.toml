@@ -1,0 +1,10 @@
+[package]
+name = "chess_core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+derive_more = { version = "2.0.1", features = ["from", "add", "mul", "not", "add_assign", "into"] }
+bitfields = "1.0.1"
+rand = "0.8.5"
+rand_chacha = "0.3.1"

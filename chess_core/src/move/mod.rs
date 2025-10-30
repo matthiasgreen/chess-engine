@@ -7,7 +7,7 @@ mod move_maps;
 
 pub use move_generator::MoveGenerator;
 
-use crate::game::{square::Square, state::chess_board::PieceType};
+use crate::{square::Square, state::chess_board::PieceType};
 
 #[bitfield(u16, new = false, debug = false)]
 #[derive(Copy, Clone, Eq, PartialEq)]

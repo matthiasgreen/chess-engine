@@ -1,4 +1,4 @@
-use crate::game::{
+use crate::{
     color::Color,
     r#move::{Move, MoveCode},
     square::Square,
@@ -477,7 +477,7 @@ impl MakeUnmaker<'_> {
 #[cfg(test)]
 mod tests {
 
-    use crate::game::r#move::{MoveGenerator, MoveList};
+    use crate::r#move::{MoveGenerator, MoveList};
 
     use super::*;
 

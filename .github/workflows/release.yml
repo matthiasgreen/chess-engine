@@ -21,10 +21,12 @@ jobs:
         # Optional version of wasm-pack to install(eg. 'v0.9.1', 'latest')
         version: 'latest'
     - name: create package
+      working-directory: ./chess_wasm
       run: wasm-pack build
     - name: pack package into tgz
+      working-directory: ./chess_wasm
       run: wasm-pack pack
     - name: release on github
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "./pkg/*.tgz"
+        artifacts: "./chess_wasm/pkg/*.tgz"

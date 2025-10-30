@@ -1,4 +1,4 @@
-use crate::game::state::{bitboard::BitBoard, game_state::GameState};
+use chess_core::state::{bitboard::BitBoard, game_state::GameState};
 
 use super::super::search::SearchContext;
 
@@ -6,10 +6,12 @@ const DOUBLED_PAWN_COEF: i32 = 40;
 const ISOLATED_PAWN_COEF: i32 = 40;
 const MOBILITY_COEF: i32 = 5;
 
-impl GameState {
+struct EvaluationContext<'a>(&'a GameState);
+
+impl EvaluationContext<'_> {
     fn doubled_pawn_number(&self) -> i32 {
         // - number of doubled pawns on active side + number of doubled on passive side
-        let (active_boards, passive_boards) = self.split_boards();
+        let (active_boards, passive_boards) = self.0.split_boards();
         let (active_pawns, passive_pawns) = (active_boards.pawn, passive_boards.pawn);
 
         // For each column, count the number of pawns in that column
@@ -30,7 +32,7 @@ impl GameState {
 
     fn isolated_pawn_number(&self) -> i32 {
         // - number of isolated pawns on active side + number of isolated pawns on passive side
-        let (active_boards, passive_boards) = self.split_boards();
+        let (active_boards, passive_boards) = self.0.split_boards();
         let (active_pawns, passive_pawns) = (active_boards.pawn, passive_boards.pawn);
 
         // For each column, count the number of pawns in the adjacent columns
@@ -72,12 +74,12 @@ impl GameState {
     }
 
     fn material_score(&self) -> i32 {
-        let (active_pieces, passive_pieces) = self.split_boards();
-        GameState::board_material(active_pieces.pawn, passive_pieces.pawn, 100)
-            + GameState::board_material(active_pieces.knight, passive_pieces.knight, 300)
-            + GameState::board_material(active_pieces.bishop, passive_pieces.bishop, 300)
-            + GameState::board_material(active_pieces.rook, passive_pieces.rook, 500)
-            + GameState::board_material(active_pieces.queen, passive_pieces.queen, 900)
+        let (active_pieces, passive_pieces) = self.0.split_boards();
+        Self::board_material(active_pieces.pawn, passive_pieces.pawn, 100)
+            + Self::board_material(active_pieces.knight, passive_pieces.knight, 300)
+            + Self::board_material(active_pieces.bishop, passive_pieces.bishop, 300)
+            + Self::board_material(active_pieces.rook, passive_pieces.rook, 500)
+            + Self::board_material(active_pieces.queen, passive_pieces.queen, 900)
     }
 }
 
@@ -141,9 +143,8 @@ impl SearchContext<'_> {
         if self.is_checkmate() {
             return -100000;
         }
-        self.make_unmaker.state.pawn_structure_score()
-            + self.make_unmaker.state.material_score()
-            + self.mobility_score()
+        let eval = EvaluationContext(&self.make_unmaker.state);
+        eval.pawn_structure_score() + eval.material_score() + self.mobility_score()
     }
 }
 
@@ -194,8 +195,8 @@ mod tests {
             ),
         ] {
             let state = &mut GameState::from_fen(fen.to_string());
-            let search_context = SearchContext::new(state, None);
-            let score = search_context.make_unmaker.state.material_score();
+            let eval = EvaluationContext(state);
+            let score = eval.material_score();
             assert_eq!(score, result);
         }
     }
@@ -225,8 +226,8 @@ mod tests {
             ),
         ] {
             let state = &mut GameState::from_fen(fen.to_string());
-            let search_context = SearchContext::new(state, None);
-            let score = search_context.make_unmaker.state.doubled_pawn_number() * DOUBLED_PAWN_COEF;
+            let eval = EvaluationContext(state);
+            let score = eval.doubled_pawn_number() * DOUBLED_PAWN_COEF;
             assert_eq!(score, result, "FEN: {}", fen);
         }
     }
@@ -251,9 +252,8 @@ mod tests {
             ),
         ] {
             let state = &mut GameState::from_fen(fen.to_string());
-            let search_context = SearchContext::new(state, None);
-            let score =
-                search_context.make_unmaker.state.isolated_pawn_number() * ISOLATED_PAWN_COEF;
+            let eval = EvaluationContext(state);
+            let score = eval.isolated_pawn_number() * ISOLATED_PAWN_COEF;
             assert_eq!(score, result, "FEN: {}", fen);
         }
     }

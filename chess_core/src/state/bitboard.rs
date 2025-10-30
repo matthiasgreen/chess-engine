@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use derive_more::{BitAnd, BitAndAssign, BitOr, BitOrAssign, From, Not, Shl, Shr};
 
-use crate::game::square::Square;
+use crate::square::Square;
 
 /// A bitboard is a 64-bit integer that represents a set of pieces on a chess board.
 /// Import the BitBoardExt trait to use some convenient methods.

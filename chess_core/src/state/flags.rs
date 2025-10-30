@@ -1,7 +1,7 @@
 use bitfields::bitfield;
 use derive_more::BitXor;
 
-use crate::game::color::Color;
+use crate::color::Color;
 
 #[bitfield(u8)]
 #[derive(Copy, Clone, Eq, PartialEq, BitXor)]

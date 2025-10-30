@@ -1,4 +1,4 @@
-use crate::game::{
+use crate::{
     color::Color,
     square::Square,
     state::{

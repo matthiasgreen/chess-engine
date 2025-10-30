@@ -1,10 +1,24 @@
-use crate::game::{
+use chess_core::{
     r#move::{MoveGenerator, MoveList},
     state::{game_state::GameState, make_unmake::MakeUnmaker},
 };
 
-#[allow(dead_code)]
-pub fn perftree(depth: u8, game_state: &mut GameState, moves: Option<Vec<&str>>) {
+fn main() {
+    let args: Vec<_> = std::env::args().collect::<Vec<_>>();
+    let (depth, fen, moves) = match &args[..] {
+        [_, depth, fen, moves] => (depth, fen, Some(moves)),
+        [_, depth, fen] => (depth, fen, None),
+        _ => panic!(),
+    };
+
+    perftree(
+        depth.parse().unwrap(),
+        &mut GameState::from_fen(fen.clone()),
+        moves.map(|x| x.split_whitespace().collect()),
+    );
+}
+
+fn perftree(depth: u8, game_state: &mut GameState, moves: Option<Vec<&str>>) {
     // depth is the maximum depth of the evaluation,
     // fen is the Forsyth-Edwards Notation string of some base position,
     // moves is an optional list of moves from the base position to the position to be evaluated, where each move is formatted as $source$target$promotion, e.g. e2e4 or a7b8Q.
